@@ -1,0 +1,199 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MAX_PARTS 6
+#define GARAGE_CAPACITY 8
+
+// Queue for Part Delivery   
+char* queue[MAX_PARTS];
+int front = 0, rear = -1;
+
+void enqueue(char* item) {
+    if (rear < MAX_PARTS - 1) {
+        queue[++rear] = item;
+    }
+}
+
+char* dequeue() {
+    if (front <= rear) {
+        return queue[front++];
+    }
+    return NULL;
+}
+
+//  Stack for Robot Arm 
+typedef struct StackNode {
+    char part[20];
+    struct StackNode* next;
+} StackNode;
+
+StackNode* top = NULL;
+
+void push(char* part) {
+    StackNode* newNode = malloc(sizeof(StackNode));
+    strcpy(newNode->part, part);
+    newNode->next = top;
+    top = newNode;
+}
+
+char* pop() {
+    if (!top) return NULL;
+    StackNode* temp = top;
+    top = top->next;
+    char* part = temp->part;
+    printf("%s ", part);
+    free(temp);
+    return part;
+}
+
+// Array for Garage Storage 
+char* garage[GARAGE_CAPACITY];
+int garageSize = 0;
+
+void addToGarage(char* car) {
+    if (garageSize < GARAGE_CAPACITY) {
+        garage[garageSize++] = strdup(car);
+    } else {
+        free(garage[0]);
+        for (int i = 1; i < GARAGE_CAPACITY; i++) {
+            garage[i - 1] = garage[i];
+        }
+        garage[GARAGE_CAPACITY - 1] = strdup(car);
+    }
+}
+
+//  Singly Linked List for Defective Cars 
+typedef struct SLLNode {
+    char car[10];
+    struct SLLNode* next;
+} SLLNode;
+
+SLLNode* defectiveHead = NULL;
+
+void addDefective(char* car) {
+    SLLNode* node = malloc(sizeof(SLLNode));
+    strcpy(node->car, car);
+    node->next = defectiveHead;
+    defectiveHead = node;
+}
+
+// Doubly Linked List for Repaired Cars 
+typedef struct DLLNode {
+    char car[10];
+    struct DLLNode* prev;
+    struct DLLNode* next;
+} DLLNode;
+
+DLLNode* repairedHead = NULL;
+
+void moveToRepaired(char* car) {
+    SLLNode *temp = defectiveHead, *prev = NULL;
+
+    while (temp && strcmp(temp->car, car) != 0) {
+        prev = temp;
+        temp = temp->next;
+    }
+
+    if (!temp) return;
+
+    if (prev) prev->next = temp->next;
+    else defectiveHead = temp->next;
+    free(temp);
+
+    DLLNode* node = malloc(sizeof(DLLNode));
+    strcpy(node->car, car);
+    node->prev = NULL;
+    node->next = repairedHead;
+    if (repairedHead) repairedHead->prev = node;
+    repairedHead = node;
+}
+
+void printRepaired() {
+    DLLNode* temp = repairedHead;
+    printf("Forward: ");
+    while (temp) {
+        printf("%s ", temp->car);
+        if (!temp->next) break;
+        temp = temp->next;
+    }
+    printf("\nBackward: ");
+    while (temp) {
+        printf("%s ", temp->car);
+        temp = temp->prev;
+    }
+    printf("\n");
+}
+
+// Circular Linked List for VIP Cars 
+typedef struct CLLNode {
+    char car[10];
+    struct CLLNode* next;
+} CLLNode;
+
+CLLNode* vipTail = NULL;
+
+void addVIP(char* car) {
+    CLLNode* node = malloc(sizeof(CLLNode));
+    strcpy(node->car, car);
+    if (!vipTail) {
+        node->next = node;
+        vipTail = node;
+    } else {
+        node->next = vipTail->next;
+        vipTail->next = node;
+        vipTail = node;
+    }
+}
+
+void printVIP(int rounds) {
+    if (!vipTail) return;
+    CLLNode* temp = vipTail->next;
+    for (int i = 0; i < rounds; i++) {
+        CLLNode* start = temp;
+        do {
+            printf("%s ", temp->car);
+            temp = temp->next;
+        } while (temp != start);
+        printf("\n");
+    }
+}
+
+//  Main 
+int main() {
+    printf("=== a) Part Delivery and Robot Arm ===\n");
+    char* parts[] = {"Engine", "Chassis", "Wheels", "Doors", "Battery", "Hood"};
+
+    for (int i = 0; i < MAX_PARTS; i++) enqueue(parts[i]);
+    for (int i = 0; i < MAX_PARTS; i++) push(dequeue());
+
+    printf("Assembly Order: ");
+    for (int i = 0; i < MAX_PARTS; i++) pop();
+    printf("\n* Hood goes last for final aesthetic finish.\n\n");
+
+    printf("=== b) Garage Assembly Storage ===\n");
+    for (int i = 1; i <= 10; i++) {
+        char name[10];
+        sprintf(name, "Car%d", i);
+        addToGarage(name);
+    }
+
+    printf("Garage Contents: ");
+    for (int i = 0; i < GARAGE_CAPACITY; i++) printf("%s ", garage[i]);
+    printf("\n* Oldest prototype shipped to meet delivery schedules.\n\n");
+
+    printf("=== c) Defective and Repaired ===\n");
+    addDefective("Car3");
+    addDefective("Car6");
+    moveToRepaired("Car3");
+    printRepaired();
+    printf("* Car3 had loose bolts, fixed using robotic torque wrench.\n\n");
+
+    printf("=== d) VIP Upgrades ===\n");
+    addVIP("Car1");
+    addVIP("Car5");
+    printVIP(2);
+    printf("* Car5 gets a solar-powered roof for eco-conscious VIPs.\n");
+
+    return 0;
+}
